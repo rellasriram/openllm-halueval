@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Sushmita Hari Connor Fahs William McDonald Sriram Rella Course Project Final Report" />
+  <title>Hallucination Discrimination versus Free-Generation Evaluation in Small Open-Source Language Models</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    div.abstract {
+      margin: 2em 2em 2em 2em;
+      text-align: left;
+      font-size: 85%;
+    }
+    div.abstract-title {
+      font-weight: bold;
+      text-align: center;
+      padding: 0;
+      margin-bottom: 0.5em;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Hallucination Discrimination versus Free-Generation
+Evaluation<br />
+in Small Open-Source Language Models</h1>
+<p class="author">Sushmita Hari Connor Fahs William McDonald Sriram
+Rella<br />
+Course Project Final Report</p>
+<div class="abstract">
+<div class="abstract-title">Abstract</div>
+<p>We study whether small open-source language models can discriminate
+hallucinated from faithful answers, and how that ability relates to
+their free-generation behavior on the same HaluEval tasks. We evaluate
+Llama 3.2 1B, Qwen3 1.7B, and Gemma 3 1B under two complementary
+protocols: paired Yes/No discrimination (Protocol A) and free generation
+with task-aware word-overlap scoring plus overlap-feature classifiers
+(Protocol B). Across 200 Protocol A judgements and 110 Protocol B items
+per model, discrimination accuracy remains modest (0.280–0.530 overall),
+F1 is inflated by Yes-bias especially for Llama, and task difficulty
+reverses between protocols: QA is easiest under free generation but
+among the hardest under discrimination. We report both protocols as
+complementary evaluations of distinct functionals of the same models
+rather than collapsing them into a single headline ranking.</p>
+</div>
+</header>
+<h1 id="introduction">Introduction</h1>
+<p>Hallucinations, fluent but fabricated or ungrounded claims, remain a
+central obstacle to deploying language models in settings where factual
+reliability matters. A model that invents a citation, attributes a
+quotation to the wrong speaker, or summarizes a document with an event
+that never appears in the source can look competent while being wrong in
+ways that are costly to detect after the fact. Much of the public
+discussion of this problem focuses on frontier-scale systems with
+proprietary interfaces. Yet the models that many practitioners can
+actually run locally for chat, summarization, tutoring, and
+retrieval-augmented workflows are often in the one- to
+two-billion-parameter range. These compact open-source models are
+attractive precisely because they are cheap, inspectable, and deployable
+without sending user text to a remote API. That same deployment path
+makes their failure modes consequential: if a one-billion-parameter
+model cannot tell a supported answer from a fabricated one when both are
+placed in front of it, then any downstream filter that asks the model to
+“check itself” is unreliable by construction. If, on the other hand, the
+same model sometimes generates text that overlaps a gold reference more
+than a known hallucinated foil, that is evidence of a different
+capability (generation under a lexical faithfulness proxy), and
+conflating the two produces misleading claims about a single
+“hallucination rate.”</p>
+<p>The evaluation literature already contains several ways to measure
+related phenomena. Benchmarks such as HaluEval provide paired faithful
+and hallucinated responses. TruthfulQA probes whether models reproduce
+human-like falsehoods. SelfCheckGPT estimates hallucination risk from
+disagreement among multiple samples without a gold reference.
+LLM-as-judge pipelines outsource grading to a stronger model. What
+remains under-specified for the small open-source regime is a careful
+separation between <em>discrimination</em> (given one candidate, is it
+hallucinated?) and <em>free generation</em> (write an answer, then score
+it against faithful and hallucinated references with an explicit rule).
+Those two questions induce different prediction problems, different
+label distributions, and different incentives for response bias.
+Treating either one as the sole headline number for “how much a small
+model hallucinates” obscures whether observed errors come from an
+inability to generate grounded text, an inability to judge candidates,
+or a trivial policy such as always answering Yes.</p>
+<p>This report therefore separates those capabilities explicitly and
+measures both on the same HaluEval task families: question answering,
+dialogue response, summarization, and general user queries. We evaluate
+three small open-source models, Llama 3.2 1B, Qwen3 1.7B, and
+Gemma 3 1B, under two protocols. Protocol A is paired discrimination:
+given context and one candidate answer that is either the dataset’s
+faithful reference or its hallucinated counterpart, the model answers
+Yes or No to whether the candidate is hallucinated. Protocol B is free
+generation: the model writes an answer from the same context, we score
+that answer with a task-aware word-overlap rule against the faithful and
+hallucinated references, and we then train logistic regression and a
+small neural network on the resulting overlap features to detect whether
+the generation was labeled incorrect. Empirically, Protocol A overall
+accuracies are 0.530 (Llama), 0.280 (Qwen), and 0.395 (Gemma) on 200
+judgements each; Protocol B free-generation accuracies are 0.464, 0.418,
+and 0.455 respectively on 110 items each. F1 on Protocol A is a poor
+standalone summary because Llama’s 0.674 F1 coexists with a 0.925 rate
+of predicting “hallucinated,” while QA accuracy rises under Protocol B
+(0.68–0.74) even as discrimination on QA remains weak. Our contribution
+is a reproducible, side-by-side formalization and measurement of
+discrimination versus free-generation evaluation for small open-source
+LLMs on HaluEval, showing that the two protocols estimate different
+model functionals and that task difficulty systematically reverses
+between them. We deliberately do not designate a single protocol as the
+headline leaderboard score; the scientific claim is the complementarity
+and the reversal, not a one-number ranking of the three models.</p>
+<h1 id="related-work">Related Work</h1>
+<p>HaluEval <span class="citation" data-cites="halueval"></span>
+supplies paired faithful and hallucinated responses across QA, dialogue,
+summarization, and general user queries, and is the primary data source
+for our experiments. The original benchmark emphasizes large-scale
+evaluation of hallucination phenomena and includes settings in which
+models are asked to identify hallucinations. Our Protocol A reuses that
+pairing, but differs from simply reporting a HaluEval leaderboard
+aggregate in three respects. First, we restrict attention to small
+open-source models that can be run locally, because that is the
+deployment regime motivating the project. Second, we treat the model
+under test itself as the Yes/No discriminator rather than relying on a
+larger external judge for the primary Protocol A metric. Third, we
+retain full confusion matrices, predicted-positive rates, and per-task
+breakdowns so that response bias is visible rather than collapsed into a
+single F1. In that sense we build on HaluEval’s data contribution while
+changing the inferential target from “how often do large models
+hallucinate on this benchmark” to “can these particular small models
+discriminate HaluEval’s own pairs, and how does that relate to their
+free generations on the same items.”</p>
+<p>TruthfulQA <span class="citation" data-cites="truthfulqa"></span>
+probes whether models imitate human falsehoods on adversarially curated
+questions about the world. Its central concern is truthfulness relative
+to consensual reality, often without a document that the answer must be
+faithful to. That design is complementary to ours but not
+interchangeable. TruthfulQA does not present an explicit hallucinated
+foil beside a gold answer for binary discrimination on each item, and it
+does not score a unique free generation against a paired hallucinated
+reference with a deterministic overlap decision rule. Our Protocol A is
+closer to a forced-choice faithfulness test conditioned on HaluEval
+candidates and contexts. Protocol B occupies the generation-and-compare
+niche that TruthfulQA does not formalize with a hallucinated twin: the
+model must produce text, after which a fixed lexical rule decides
+whether that text is closer to the faithful or the hallucinated
+reference. A model could in principle do well on TruthfulQA-style
+world-knowledge probes while still failing Protocol A discrimination on
+document-grounded candidates, or the reverse; our experiments are
+designed to measure the latter family of failures directly.</p>
+<p>Work on factuality and faithfulness <span class="citation"
+data-cites="faithfulness-taxonomy"></span> distinguishes errors relative
+to world knowledge from errors relative to a provided source.
+Summarization and knowledge-grounded dialogue research has long argued
+that a summary can be factually true in the world yet unfaithful to the
+input document, or faithful to the document yet incomplete. HaluEval’s
+knowledge-conditioned tasks sit primarily in the faithfulness regime:
+the hallucination is defined relative to supplied knowledge, dialogue
+history, or document text. Our discrimination prompt asks whether the
+candidate is fabricated or unsupported by the given context, aligning
+Protocol A with faithfulness rather than open-world factuality.
+Protocol B’s overlap rule is likewise a faithfulness proxy, not a
+fact-checking system against the web. That alignment matters for
+interpretation. When Llama marks a faithful QA candidate as
+hallucinated, the error is a faithfulness-discrimination failure under
+HaluEval labels, not necessarily a claim that the string is false in the
+world.</p>
+<p>SelfCheckGPT <span class="citation" data-cites="selfcheckgpt"></span>
+estimates hallucination risk by sampling multiple generations and
+measuring inconsistency among them, without requiring a gold answer.
+That approach addresses an important reference-free setting in which no
+trusted <span class="math inline"><em>r</em><sup>+</sup></span> exists.
+It does not ask a model to classify a single provided candidate, and it
+does not compare one free generation to a dataset-supplied hallucinated
+string via deterministic overlap. Protocol A is therefore complementary:
+one candidate, one binary decision, supervised labels from HaluEval.
+Protocol B is complementary in a different way: a single generation is
+scored against fixed references rather than against the model’s own
+resampled variants. SelfCheckGPT would be a natural third protocol in
+future work; it is not a substitute for either protocol here, because it
+answers a different statistical question (sample inconsistency) than
+discrimination risk or overlap-relative generation accuracy.</p>
+<p>LLM-as-judge evaluations <span class="citation"
+data-cites="llm-as-judge"></span> use a strong model to grade outputs,
+often with detailed rubrics and pairwise preferences. Those pipelines
+are powerful when the scientific goal is scalable approximation to human
+preference. They are the wrong primary instrument when the scientific
+goal is to characterize the small model’s own discrimination ability. We
+deliberately avoid outsourcing Protocol A labels to a larger judge. The
+object of study is whether Llama, Qwen, or Gemma can discriminate. Where
+LLM-as-judge papers measure agreement with humans, we measure the small
+model’s agreement with HaluEval’s pre-labeled candidates. Protocol B
+goes further and removes the LLM judge entirely for the generation
+score, replacing it with an explicit overlap rule and, for secondary
+analysis, classical classifiers trained on those overlaps. In summary,
+HaluEval gives us the pairs, TruthfulQA motivates truthfulness
+evaluation without our paired Yes/No setup, the factuality/faithfulness
+taxonomy situates our context-grounded prompt, SelfCheckGPT covers
+reference-free multi-sample detection that neither of our protocols
+implements, and LLM-as-judge work motivates external grading that we
+intentionally replace with the model under test (Protocol A) or with a
+deterministic overlap rule and classical classifiers (Protocol B).</p>
+<h1 id="methods">Methods</h1>
+<p>Let <span
+class="math inline">𝒯 = {qa, dialogue, summarization, general}</span>
+index HaluEval tasks. For each task <span
+class="math inline"><em>t</em> ∈ 𝒯</span> we draw a fixed random subset
+of items with seed <span class="math inline">42</span>, yielding <span
+class="math inline"><em>n</em><sub>qa</sub> = 50</span> and <span
+class="math inline"><em>n</em><sub><em>t</em></sub> = 20</span> for the
+other three tasks, hence <span
+class="math inline"><em>n</em> = 110</span> items total per model. Each
+item <span class="math inline"><em>i</em></span> provides a context
+<span class="math inline"><em>c</em><sub><em>i</em></sub></span>
+(possibly empty for general queries), a prompt stem <span
+class="math inline"><em>q</em><sub><em>i</em></sub></span>, a faithful
+reference <span
+class="math inline"><em>r</em><sub><em>i</em></sub><sup>+</sup></span>,
+and a hallucinated reference <span
+class="math inline"><em>r</em><sub><em>i</em></sub><sup>−</sup></span>.
+For general items, only one of <span
+class="math inline"><em>r</em><sub><em>i</em></sub><sup>+</sup></span>
+or <span
+class="math inline"><em>r</em><sub><em>i</em></sub><sup>−</sup></span>
+is nonempty according to the dataset’s hallucination label, so
+Protocol A contributes one judgement rather than two for those rows. The
+models under test are <span
+class="math inline"><em>m</em> ∈ {<code>llama3.2:1b</code>, <code>qwen3:1.7b</code>, <code>gemma3:1b</code>}</span>,
+queried locally through Ollama with short generations and low
+temperature for discrimination. For Qwen3 we disable thinking mode at
+the API level (<span
+class="math inline"><code>t</code><code>h</code><code>i</code><code>n</code><code>k</code> <code>=</code> <code>f</code><code>a</code><code>l</code><code>s</code><code>e</code></span>)
+so that completions occupy the content channel rather than exhausting
+the token budget on hidden reasoning; without that setting, Qwen3 can
+return empty <code>content</code> fields and produce vacuous
+Protocol A/B scores that reflect an interface mismatch rather than
+discrimination or generation ability.</p>
+<h4 id="protocol-a-paired-discrimination.">Protocol A (paired
+discrimination).</h4>
+<p>For every item with a nonempty faithful reference we form a judgement
+instance <span
+class="math inline">(<em>c</em><sub><em>i</em></sub>, <em>q</em><sub><em>i</em></sub>, <em>r</em><sub><em>i</em></sub><sup>+</sup>, <em>y</em> = 0)</span>,
+and for every nonempty hallucinated reference <span
+class="math inline">(<em>c</em><sub><em>i</em></sub>, <em>q</em><sub><em>i</em></sub>, <em>r</em><sub><em>i</em></sub><sup>−</sup>, <em>y</em> = 1)</span>,
+where <span class="math inline"><em>y</em> = 1</span> denotes
+“hallucinated.” This produces <span
+class="math inline"><em>N</em><sub><em>A</em></sub> = 200</span>
+labelled judgements per model in our run. The model implements a
+predictor <span
+class="math inline"><em>ŷ</em> = <em>f</em><sub><em>m</em></sub>(<em>c</em>, <em>q</em>, <em>r</em>) ∈ {0, 1}</span>
+by answering a Yes/No prompt that asks whether the candidate is a
+hallucination fabricated or unsupported by the context. We parse the
+completion by normalizing punctuation and reading the leading Yes/No
+token, with a conservative fallback that searches for an unambiguous Yes
+or No elsewhere in the string. With positive class <span
+class="math inline"><em>y</em> = 1</span>, <span
+class="math display">$$\begin{align*}
+\mathrm{TP}&amp;=\sum\mathbf{1}[\hat y=1,y=1],&amp;
+\mathrm{FP}&amp;=\sum\mathbf{1}[\hat y=1,y=0],\\
+\mathrm{TN}&amp;=\sum\mathbf{1}[\hat y=0,y=0],&amp;
+\mathrm{FN}&amp;=\sum\mathbf{1}[\hat y=0,y=1],
+\end{align*}$$</span> and we report <span
+class="math display">$$\begin{align*}
+\mathrm{Acc}&amp;=\frac{\mathrm{TP}+\mathrm{TN}}{N},&amp;
+\mathrm{Prec}&amp;=\frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}},&amp;
+\mathrm{Rec}&amp;=\frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}},\\
+F_1&amp;=2\cdot\frac{\mathrm{Prec}\cdot\mathrm{Rec}}{\mathrm{Prec}+\mathrm{Rec}},
+\end{align*}$$</span> with zero-division defined as zero. We
+additionally report the predicted positive rate <span
+class="math inline">$\widehat{\pi}=\frac{1}{N}\sum\hat y$</span>
+because, when labels are near-balanced, a trivial always-Yes policy can
+inflate recall and F1 without demonstrating discrimination. Protocol A
+therefore estimates the risk <span
+class="math inline">𝔼[<strong>1</strong>[<em>f</em><sub><em>m</em></sub>(<em>C</em>, <em>Q</em>, <em>R</em>) ≠ <em>Y</em>]]</span>
+under the HaluEval candidate distribution: a supervised discrimination
+functional of <span
+class="math inline"><em>f</em><sub><em>m</em></sub></span>.</p>
+<h4 id="protocol-b-free-generation-and-overlap-scoring.">Protocol B
+(free generation and overlap scoring).</h4>
+<p>The same items are presented without a candidate answer. Let <span
+class="math inline"><em>a</em><sub><em>i</em></sub> = <em>g</em><sub><em>m</em></sub>(<em>c</em><sub><em>i</em></sub>, <em>q</em><sub><em>i</em></sub>)</span>
+be the model’s free generation under a task-specific prompt (short
+answer for QA, next dialogue turn, two-to-three-sentence summary, or
+short general reply). Define a normalization map that lowercases and
+strips punctuation, and let <span
+class="math inline"><em>T</em>(<em>u</em>)</span> be the resulting token
+set. Jaccard overlap is <span
+class="math display">$$\mathrm{ov}(u,v)=\begin{cases}
+\dfrac{|T(u)\cap T(v)|}{|T(u)\cup T(v)|} &amp; \text{if
+}T(u),T(v)\neq\emptyset,\\
+0 &amp; \text{otherwise.}
+\end{cases}$$</span> Correctness <span
+class="math inline">corr<sub><em>i</em></sub> ∈ {0, 1}</span> is
+task-dependent. For QA, <span
+class="math inline">corr<sub><em>i</em></sub> = 1</span> if the
+normalized faithful string is a substring of the normalized answer or
+its token set is contained in the answer’s token set; otherwise we fall
+through to the overlap rule used for other tasks: <span
+class="math display">corr<sub><em>i</em></sub> = <strong>1</strong> [ov(<em>a</em><sub><em>i</em></sub>, <em>r</em><sub><em>i</em></sub><sup>+</sup>) &gt; ov(<em>a</em><sub><em>i</em></sub>, <em>r</em><sub><em>i</em></sub><sup>−</sup>)]</span>
+when <span
+class="math inline"><em>r</em><sub><em>i</em></sub><sup>+</sup></span>
+is nonempty. Protocol B generation accuracy is <span
+class="math inline">$\frac{1}{n}\sum_i\mathrm{corr}_i$</span>. This
+estimates a different functional: performance of the generator <span
+class="math inline"><em>g</em><sub><em>m</em></sub></span> under a
+deterministic reference comparison, not the discrimination risk of <span
+class="math inline"><em>f</em><sub><em>m</em></sub></span>. The QA
+substring rule is intentionally lenient to short entity answers; the
+overlap rule for longer outputs is stricter in requiring the generation
+to be lexically closer to the faithful reference than to the
+hallucinated foil.</p>
+<h4 id="overlap-feature-classifiers.">Overlap-feature classifiers.</h4>
+<p>On Protocol B outputs we form features <span
+class="math inline"><em>x</em><sub><em>i</em></sub> = (ov(<em>a</em><sub><em>i</em></sub>, <em>r</em><sub><em>i</em></sub><sup>+</sup>), ov(<em>a</em><sub><em>i</em></sub>, <em>r</em><sub><em>i</em></sub><sup>−</sup>))</span>
+and labels <span
+class="math inline"><em>z</em><sub><em>i</em></sub> = 1 − corr<sub><em>i</em></sub></span>
+(positive <span class="math inline">=</span> generation judged
+hallucinated/incorrect). A stratified <span
+class="math inline">75/25</span> split with the same seed trains <span
+class="math inline"><em>ℓ</em><sub>2</sub></span>-regularized logistic
+regression with grid search over <span
+class="math inline"><em>C</em> ∈ {0.1, 1, 10}</span> and a one-hidden-
+layer network with eight ReLU units and a sigmoid output trained with
+binary cross-entropy. Classifier accuracy is measured on the held-out
+<span class="math inline"><em>z</em></span> labels. That quantity is a
+post-hoc detectability score in a two-dimensional feature space, not a
+claim that the classifier “answers the user question better” than the
+LLM. We also report precision, recall, and <span
+class="math inline"><em>F</em><sub>1</sub></span> for these detectors
+with the same positive-class convention as Protocol A, and we store
+per-item predicted probabilities for later AUC analysis.</p>
+<h4 id="relationship-between-protocols.">Relationship between
+protocols.</h4>
+<p>We do not standardize on a single protocol for headline ranking. Let
+<span
+class="math inline"><em>R</em><sub><em>A</em></sub>(<em>m</em>, <em>t</em>)</span>
+be Protocol A accuracy and <span
+class="math inline"><em>R</em><sub><em>B</em></sub>(<em>m</em>, <em>t</em>)</span>
+Protocol B accuracy on task <span class="math inline"><em>t</em></span>.
+Because <span class="math inline"><em>f</em><sub><em>m</em></sub></span>
+and <span class="math inline"><em>g</em><sub><em>m</em></sub></span> are
+distinct maps, and because the sampling measures differ (candidate
+judgement versus free generation), <span
+class="math inline"><em>R</em><sub><em>A</em></sub></span> and <span
+class="math inline"><em>R</em><sub><em>B</em></sub></span> are not
+estimators of a common parameter <span
+class="math inline"><em>θ</em>(<em>m</em>)</span>. Any scalar that
+averages them would mix incompatible estimands. We therefore report both
+as complementary evaluations and, separately, the signed gap <span
+class="math inline"><em>Δ</em>(<em>m</em>, <em>t</em>) = <em>R</em><sub><em>A</em></sub>(<em>m</em>, <em>t</em>) − <em>R</em><sub><em>B</em></sub>(<em>m</em>, <em>t</em>)</span>
+only as evidence of task-difficulty reversal. A negative <span
+class="math inline"><em>Δ</em></span> means free-generation accuracy
+exceeds discrimination accuracy on that task; it does not mean the model
+is “better” in an absolute sense. A joint key <span
+class="math inline">(<em>t</em>, <em>i</em>, <em>m</em>)</span> stores
+both views when present; missing cells are left missing rather than
+imputed, so coverage is an explicit part of the experimental record.</p>
+<h1 id="experiments-and-results">Experiments and Results</h1>
+<p>All numbers below come from the committed result CSVs under
+<code>results/</code> for the shared 110-item sample (Protocol B) and
+200 judgements per model (Protocol A). Protocol B was executed for all
+three models. No larger Protocol A artefact (for example a
+9<span>,</span>000-judgement midway Table 1) is present in the project
+repository, so every quantitative claim in this section is taken from
+that reproducible local run rather than from an external or missing
+table.</p>
+<h2 id="protocol-a-discrimination">Protocol A: discrimination</h2>
+<p>Table <a href="#tab:protocol-a" data-reference-type="ref"
+data-reference="tab:protocol-a">1</a> summarizes overall discrimination
+metrics. Llama attains the highest accuracy (0.530) and <span
+class="math inline"><em>F</em><sub>1</sub></span> (0.674), Qwen the
+lowest (0.280 accuracy, 0.357 <span
+class="math inline"><em>F</em><sub>1</sub></span>), and Gemma sits
+between them (0.395 / 0.525). These <span
+class="math inline"><em>F</em><sub>1</sub></span> values are misleading
+if read as a ranking of discrimination skill. Llama predicts the
+positive (hallucinated) class on 185 of 200 judgements (rate 0.925),
+yielding recall 0.942 but precision only 0.524. The confusion matrix
+contains only nine true negatives and six false negatives: the model
+almost never says No. On a near-balanced label distribution (gold
+positive rate 0.515), a constant-Yes classifier already achieves high
+recall and middling precision, so Llama’s <span
+class="math inline"><em>F</em><sub>1</sub></span> largely reflects
+response bias rather than calibrated discrimination. Gemma also skews
+positive (predicted Yes rate 0.760) with recall 0.650 and precision
+0.441. Qwen’s predicted Yes rate (0.605) is closer to the base rate, yet
+accuracy falls to 0.280 with precision 0.331 and recall 0.388,
+indicating weak separation rather than a simple always-Yes policy. In
+that sense, none of the three models shows strong genuine discrimination
+on this sample. Llama exhibits the clearest fixed-bias artifact; Qwen
+fails with more balanced predictions; Gemma mixes moderate bias with
+moderate error.</p>
+<div id="tab:protocol-a">
+<table>
+<caption>Protocol A overall metrics (positive class <span
+class="math inline">=</span> hallucinated; <span
+class="math inline"><em>N</em> = 200</span> judgements per model).
+Source: <code>protocol_a_metrics_*.csv</code> and run CSVs.</caption>
+<thead>
+<tr>
+<th style="text-align: left;">Model</th>
+<th style="text-align: center;">Acc.</th>
+<th style="text-align: center;">Prec.</th>
+<th style="text-align: center;">Rec.</th>
+<th style="text-align: center;"><span
+class="math inline"><em>F</em><sub>1</sub></span></th>
+<th style="text-align: center;">TP/FP/TN/FN</th>
+<th style="text-align: center;">Pred. Yes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Llama 3.2 1B</td>
+<td style="text-align: center;">0.530</td>
+<td style="text-align: center;">0.524</td>
+<td style="text-align: center;">0.942</td>
+<td style="text-align: center;">0.674</td>
+<td style="text-align: center;">97/88/9/6</td>
+<td style="text-align: center;">0.925</td>
+</tr>
+<tr>
+<td style="text-align: left;">Qwen3 1.7B</td>
+<td style="text-align: center;">0.280</td>
+<td style="text-align: center;">0.331</td>
+<td style="text-align: center;">0.388</td>
+<td style="text-align: center;">0.357</td>
+<td style="text-align: center;">40/81/16/63</td>
+<td style="text-align: center;">0.605</td>
+</tr>
+<tr>
+<td style="text-align: left;">Gemma 3 1B</td>
+<td style="text-align: center;">0.395</td>
+<td style="text-align: center;">0.441</td>
+<td style="text-align: center;">0.650</td>
+<td style="text-align: center;">0.525</td>
+<td style="text-align: center;">67/85/12/36</td>
+<td style="text-align: center;">0.760</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Qualitatively, Llama’s false positives include faithful QA candidates
+such as the gold entity “Badr Hari,” which the model nonetheless labels
+Yes, while one of its scarce true negatives is the faithful candidate
+“Dessau,” labeled No. The coexistence of both outcomes shows that the
+bias is strong but not literally constant; it is still far from useful
+discrimination. Per-task Protocol A accuracies (Table <a
+href="#tab:protocol-a-task" data-reference-type="ref"
+data-reference="tab:protocol-a-task">2</a>) show that general queries
+are relatively easier for Llama (0.65), while QA is hardest for Qwen
+(0.20) and Gemma (0.32). Summarization and dialogue hover near 0.50 for
+Llama and Gemma, consistent with near-chance behavior once class balance
+is considered.</p>
+<div id="tab:protocol-a-task">
+<table>
+<caption>Protocol A accuracy by task. Source:
+<code>protocol_a_metrics_*.csv</code>.</caption>
+<thead>
+<tr>
+<th style="text-align: left;">Model</th>
+<th style="text-align: center;">QA</th>
+<th style="text-align: center;">Dialogue</th>
+<th style="text-align: center;">Summarization</th>
+<th style="text-align: center;">General</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Llama 3.2 1B</td>
+<td style="text-align: center;">0.53</td>
+<td style="text-align: center;">0.50</td>
+<td style="text-align: center;">0.50</td>
+<td style="text-align: center;">0.65</td>
+</tr>
+<tr>
+<td style="text-align: left;">Qwen3 1.7B</td>
+<td style="text-align: center;">0.20</td>
+<td style="text-align: center;">0.325</td>
+<td style="text-align: center;">0.40</td>
+<td style="text-align: center;">0.35</td>
+</tr>
+<tr>
+<td style="text-align: left;">Gemma 3 1B</td>
+<td style="text-align: center;">0.32</td>
+<td style="text-align: center;">0.50</td>
+<td style="text-align: center;">0.50</td>
+<td style="text-align: center;">0.35</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="protocol-b-free-generation-and-classifiers">Protocol B: free
+generation and classifiers</h2>
+<p>Table <a href="#tab:protocol-b" data-reference-type="ref"
+data-reference="tab:protocol-b">3</a> reports free-generation accuracy
+under the overlap rule. Overall accuracies are 0.464 (Llama), 0.418
+(Qwen), and 0.455 (Gemma). QA dominates: 0.68, 0.70, and 0.74
+respectively, whereas summarization falls to 0.20, 0.10, and 0.10.
+Dialogue ranges from 0.15 (Qwen) to 0.35 (Llama); general is uniformly
+0.30. For Llama, incorrect generations distribute across tasks as 16 QA
+errors, 13 dialogue errors, 14 general errors, and 16 summarization
+errors, so the overall 0.464 figure is not driven by a single collapsed
+task. Qualitatively, short QA answers often contain the gold entity
+under the substring rule (Gemma, for example, answers “Dessau” on a
+Hotpot-style item where that is the faithful span), while long summaries
+frequently lose to the hallucinated foil on Jaccard overlap. In one
+Llama summarization failure, the generation’s overlap with the faithful
+summary is 0.247 versus 0.317 with the hallucinated summary, so the
+decision rule marks the output incorrect even though the generation
+discusses the same news event; lexical proximity to the foil is enough
+to flip the label. That pattern explains why summarization looks
+catastrophically hard under Protocol B without implying that the model
+produced unrelated text.</p>
+<div id="tab:protocol-b">
+<table>
+<caption>Protocol B free-generation accuracy by task (<span
+class="math inline"><em>n</em> = 110</span> items per model). Source:
+<code>task_metrics_*.csv</code>.</caption>
+<thead>
+<tr>
+<th style="text-align: left;">Model</th>
+<th style="text-align: center;">QA</th>
+<th style="text-align: center;">Dialogue</th>
+<th style="text-align: center;">Summ.</th>
+<th style="text-align: center;">General</th>
+<th style="text-align: center;">Overall</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Llama 3.2 1B</td>
+<td style="text-align: center;">0.68</td>
+<td style="text-align: center;">0.35</td>
+<td style="text-align: center;">0.20</td>
+<td style="text-align: center;">0.30</td>
+<td style="text-align: center;">0.464</td>
+</tr>
+<tr>
+<td style="text-align: left;">Qwen3 1.7B</td>
+<td style="text-align: center;">0.70</td>
+<td style="text-align: center;">0.15</td>
+<td style="text-align: center;">0.10</td>
+<td style="text-align: center;">0.30</td>
+<td style="text-align: center;">0.418</td>
+</tr>
+<tr>
+<td style="text-align: left;">Gemma 3 1B</td>
+<td style="text-align: center;">0.74</td>
+<td style="text-align: center;">0.25</td>
+<td style="text-align: center;">0.10</td>
+<td style="text-align: center;">0.30</td>
+<td style="text-align: center;">0.455</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Held-out overlap-classifier accuracies (Table <a href="#tab:clf"
+data-reference-type="ref" data-reference="tab:clf">4</a>) substantially
+exceed free-generation accuracy for every model: logistic regression
+reaches 0.643 / 0.750 / 0.857 and the neural net 0.679 / 0.821 / 0.857
+for Llama, Qwen, and Gemma respectively, versus direct accuracies 0.464
+/ 0.418 / 0.455. The correct interpretation is not that classifiers
+answer user questions better, but that the two-dimensional overlap
+feature <span
+class="math inline">(ov(<em>a</em>, <em>r</em><sup>+</sup>), ov(<em>a</em>, <em>r</em><sup>−</sup>))</span>
+separates Protocol B’s own correctness labels more cleanly than the
+generator matches <span
+class="math inline"><em>r</em><sup>+</sup></span>. On the same held-out
+splits (<span class="math inline"><em>n</em> = 28</span>), detector
+<span class="math inline"><em>F</em><sub>1</sub></span> for logistic
+regression is 0.722 (Llama), 0.811 (Qwen), and 0.882 (Gemma). Relative
+to direct generation accuracy, the absolute lifts are approximately
+<span class="math inline">+0.179</span> (Llama LR), <span
+class="math inline">+0.332</span> (Qwen LR), and <span
+class="math inline">+0.402</span> (Gemma LR). These lifts shrink the
+claim one should make: overlap features are informative about the
+scoring rule’s own errors; they do not rehabilitate the generator.</p>
+<div id="tab:clf">
+<table>
+<caption>Protocol B direct generation accuracy versus held-out
+overlap-classifier accuracy (<span
+class="math inline"><em>n</em> = 110</span> pool; test size <span
+class="math inline">28</span>). Source:
+<code>model_accuracy_all_models.csv</code>.</caption>
+<thead>
+<tr>
+<th style="text-align: left;">Model</th>
+<th style="text-align: center;">Direct acc.</th>
+<th style="text-align: center;">LR acc.</th>
+<th style="text-align: center;">NN acc.</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Llama 3.2 1B</td>
+<td style="text-align: center;">0.464</td>
+<td style="text-align: center;">0.643</td>
+<td style="text-align: center;">0.679</td>
+</tr>
+<tr>
+<td style="text-align: left;">Qwen3 1.7B</td>
+<td style="text-align: center;">0.418</td>
+<td style="text-align: center;">0.750</td>
+<td style="text-align: center;">0.821</td>
+</tr>
+<tr>
+<td style="text-align: left;">Gemma 3 1B</td>
+<td style="text-align: center;">0.455</td>
+<td style="text-align: center;">0.857</td>
+<td style="text-align: center;">0.857</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="task-difficulty-reversal-between-protocols">Task-difficulty
+reversal between protocols</h2>
+<p>Table <a href="#tab:delta" data-reference-type="ref"
+data-reference="tab:delta">5</a> reports <span
+class="math inline"><em>Δ</em> = <em>R</em><sub><em>A</em></sub> − <em>R</em><sub><em>B</em></sub></span>
+by task. For every model, QA shows a negative gap (Protocol B higher):
+<span class="math inline">−0.15</span> (Llama), <span
+class="math inline">−0.50</span> (Qwen), <span
+class="math inline">−0.42</span> (Gemma). Non-QA tasks are positive:
+discrimination accuracy exceeds free-generation accuracy on dialogue,
+summarization, and usually general. Thus task difficulty reverses. QA is
+the easiest free-generation task in Table <a href="#tab:protocol-b"
+data-reference-type="ref" data-reference="tab:protocol-b">3</a> and
+among the hardest discrimination tasks in Table <a
+href="#tab:protocol-a-task" data-reference-type="ref"
+data-reference="tab:protocol-a-task">2</a>. Summarization is near chance
+under Protocol A for Llama and Gemma (0.50) but near floor under
+Protocol B (0.10–0.20). Figure <a href="#fig:task"
+data-reference-type="ref" data-reference="fig:task">1</a> visualizes
+Protocol B accuracies; Figure <a href="#fig:pr"
+data-reference-type="ref" data-reference="fig:pr">2</a> places
+Protocol A and Protocol B logistic-regression operating points in
+precision–recall space. We treat this reversal as evidence that a single
+hallucination leaderboard mixing judgement and generation would scramble
+both model comparisons and task comparisons.</p>
+<div id="tab:delta">
+<table>
+<caption>Protocol A minus Protocol B accuracy (<span
+class="math inline"><em>Δ</em></span>). Sign flip marks <span
+class="math inline"><em>Δ</em> &lt; 0</span> (B exceeds A). Source:
+<code>protocol_comparison.csv</code>.</caption>
+<thead>
+<tr>
+<th style="text-align: left;">Model</th>
+<th style="text-align: left;">Task</th>
+<th style="text-align: center;"><span
+class="math inline"><em>R</em><sub><em>A</em></sub></span></th>
+<th style="text-align: center;"><span
+class="math inline"><em>R</em><sub><em>B</em></sub></span></th>
+<th style="text-align: center;"><span
+class="math inline"><em>Δ</em></span> (flip?)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Llama 3.2 1B</td>
+<td style="text-align: left;">QA</td>
+<td style="text-align: center;">0.53</td>
+<td style="text-align: center;">0.68</td>
+<td style="text-align: center;"><span class="math inline">−0.15</span>
+(yes)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Llama 3.2 1B</td>
+<td style="text-align: left;">Dialogue</td>
+<td style="text-align: center;">0.50</td>
+<td style="text-align: center;">0.35</td>
+<td style="text-align: center;"><span
+class="math inline">+0.15</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">Llama 3.2 1B</td>
+<td style="text-align: left;">Summarization</td>
+<td style="text-align: center;">0.50</td>
+<td style="text-align: center;">0.20</td>
+<td style="text-align: center;"><span
+class="math inline">+0.30</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">Llama 3.2 1B</td>
+<td style="text-align: left;">General</td>
+<td style="text-align: center;">0.65</td>
+<td style="text-align: center;">0.30</td>
+<td style="text-align: center;"><span
+class="math inline">+0.35</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">Qwen3 1.7B</td>
+<td style="text-align: left;">QA</td>
+<td style="text-align: center;">0.20</td>
+<td style="text-align: center;">0.70</td>
+<td style="text-align: center;"><span class="math inline">−0.50</span>
+(yes)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Qwen3 1.7B</td>
+<td style="text-align: left;">Dialogue</td>
+<td style="text-align: center;">0.325</td>
+<td style="text-align: center;">0.15</td>
+<td style="text-align: center;"><span
+class="math inline">+0.175</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">Qwen3 1.7B</td>
+<td style="text-align: left;">Summarization</td>
+<td style="text-align: center;">0.40</td>
+<td style="text-align: center;">0.10</td>
+<td style="text-align: center;"><span
+class="math inline">+0.30</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">Qwen3 1.7B</td>
+<td style="text-align: left;">General</td>
+<td style="text-align: center;">0.35</td>
+<td style="text-align: center;">0.30</td>
+<td style="text-align: center;"><span
+class="math inline">+0.05</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">Gemma 3 1B</td>
+<td style="text-align: left;">QA</td>
+<td style="text-align: center;">0.32</td>
+<td style="text-align: center;">0.74</td>
+<td style="text-align: center;"><span class="math inline">−0.42</span>
+(yes)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Gemma 3 1B</td>
+<td style="text-align: left;">Dialogue</td>
+<td style="text-align: center;">0.50</td>
+<td style="text-align: center;">0.25</td>
+<td style="text-align: center;"><span
+class="math inline">+0.25</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">Gemma 3 1B</td>
+<td style="text-align: left;">Summarization</td>
+<td style="text-align: center;">0.50</td>
+<td style="text-align: center;">0.10</td>
+<td style="text-align: center;"><span
+class="math inline">+0.40</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">Gemma 3 1B</td>
+<td style="text-align: left;">General</td>
+<td style="text-align: center;">0.35</td>
+<td style="text-align: center;">0.30</td>
+<td style="text-align: center;"><span
+class="math inline">+0.05</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+<figure id="fig:task" data-latex-placement="t">
+<img src="task_comparison.png" style="width:92.0%" />
+<figcaption>Protocol B free-generation accuracy by task and model (seed
+42). Values: Llama QA 0.680, dialogue 0.350, summarization 0.200,
+general 0.300; Qwen 0.700 / 0.150 / 0.100 / 0.300; Gemma 0.740 / 0.250 /
+0.100 / 0.300.</figcaption>
+</figure>
+<figure id="fig:pr" data-latex-placement="t">
+<img src="precision_recall_scatter.png" style="width:82.0%" />
+<figcaption>Precision–recall scatter for Protocol A (circles) and
+Protocol B logistic regression on the held-out split (squares); positive
+class <span class="math inline">=</span> hallucinated. Supporting
+per-point precision/recall/F1 appear in
+<code>results/figure_captions.md</code>.</figcaption>
+</figure>
+<h1 id="conclusion">Conclusion</h1>
+<p>We built and ran a reproducible dual-protocol evaluation of
+hallucination behavior in three small open-source LLMs on HaluEval.
+Protocol A asks each model to discriminate faithful from hallucinated
+candidates; Protocol B asks each model to generate freely, scores those
+generations with a fixed overlap rule, and trains classical detectors on
+overlap features. The experimental design refuses a single headline
+protocol: discrimination risk and generation-under- overlap are
+different functionals, and the signed gap <span
+class="math inline"><em>Δ</em></span> is used only to expose
+task-difficulty reversal.</p>
+<p>What a reader now knows, concretely, is the following comparative
+picture. On this sample, discrimination accuracies are only 0.530,
+0.280, and 0.395 for Llama, Qwen, and Gemma. Llama’s 0.674 <span
+class="math inline"><em>F</em><sub>1</sub></span> is largely a Yes-bias
+artifact, with a 0.925 positive prediction rate and only nine true
+negatives out of 200 judgements. Free-generation overall accuracies are
+0.464, 0.418, and 0.455, with QA much easier (0.68–0.74) than
+summarization (0.10–0.20). QA is the unique task where Protocol B
+accuracy exceeds Protocol A for all three models, with gaps as large as
+<span class="math inline">−0.50</span> for Qwen. Overlap-feature
+classifiers detect Protocol B error labels at held-out accuracies
+0.64–0.86, well above generation accuracy, showing that post-hoc feature
+separation is easier than faithful generation under our rule. None of
+those statements is available from Protocol A alone or Protocol B
+alone.</p>
+<p>Relative to the literature reviewed above, this contribution is not a
+new benchmark dataset and not a reference-free SelfCheck-style sampler.
+It is a methodological insistence that paired discrimination and
+free-generation-plus- overlap estimate different functionals of the same
+small models, reported jointly without collapsing to one score. That
+stance extends HaluEval-style evaluation by making the small model the
+discriminator and by insisting on bias-aware reading of F1. It extends
+truthfulness-style work by adding an explicit hallucinated foil and a
+second generation protocol tied to the same items. It complements
+LLM-as-judge pipelines by refusing to outsource Protocol A labels to a
+larger model and by using a deterministic overlap rule for Protocol B
+generation scoring.</p>
+<p>Several limitations bound these claims. The present reproducible run
+uses 110 Protocol B items and 200 Protocol A judgements per model rather
+than a full HaluEval sweep; classifier test sets contain only 28 points;
+and overlap scoring is a lexical proxy for faithfulness, not human
+judgment. Qwen3 required an explicit <span
+class="math inline"><code>t</code><code>h</code><code>i</code><code>n</code><code>k</code> <code>=</code> <code>f</code><code>a</code><code>l</code><code>s</code><code>e</code></span>
+setting to yield nonempty completions, which is an engineering detail
+with scientific consequences for anyone repeating the study. Because the
+repository contains no larger Protocol A table, we do not cite a
+separate midway judgement count alongside these numbers. Future work
+should vary discrimination prompts systematically to test how sensitive
+the Yes-bias finding is to wording and to decoding temperature, evaluate
+a second dataset beyond HaluEval to check whether the QA difficulty
+reversal replicates outside this benchmark’s construction, and construct
+a small synthetic ground-truth validation set in which faithfulness is
+unambiguous by design so that overlap-rule errors can be separated from
+model errors. Richer Protocol B features, such as length ratios or
+entailment scores, could be added while keeping the same non-imputation
+rule for missing cells. Extending both protocols under identical
+sampling to larger open models would clarify whether the
+bias-versus-discrimination pattern is specific to the sub-2B regime
+studied here or persists as capacity increases.</p>
+<div class="thebibliography">
+<p><span>9</span></p>
+<p>Junyi Li, Xiaoxue Cheng, Wayne Xin Zhao, Jian-Yun Nie, and Ji-Rong
+Wen. HaluEval: A Large-Scale Hallucination Evaluation Benchmark for
+Large Language Models. In <em>Proceedings of the 2023 Conference on
+Empirical Methods in Natural Language Processing</em>, pages 6449–6464,
+Singapore, 2023. Association for Computational Linguistics.</p>
+<p>Stephanie Lin, Jacob Hilton, and Owain Evans. TruthfulQA: Measuring
+How Models Mimic Human Falsehoods. In <em>Proceedings of the 60th Annual
+Meeting of the Association for Computational Linguistics (Volume 1: Long
+Papers)</em>, pages 3214–3252, Dublin, Ireland, 2022. Association for
+Computational Linguistics.</p>
+<p>Joshua Maynez, Shashi Narayan, Bernd Bohnet, and Ryan McDonald. On
+Faithfulness and Factuality in Abstractive Summarization. In
+<em>Proceedings of the 58th Annual Meeting of the Association for
+Computational Linguistics</em>, pages 1906–1919, 2020. Association for
+Computational Linguistics.</p>
+<p>Potsawee Manakul, Adian Liusie, and Mark Gales. SelfCheckGPT:
+Zero-Resource Black-Box Hallucination Detection for Generative Large
+Language Models. In <em>Proceedings of the 2023 Conference on Empirical
+Methods in Natural Language Processing</em>, pages 9004–9017, Singapore,
+2023. Association for Computational Linguistics.</p>
+<p>Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao
+Wu, Yonghao Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric Xing, Hao
+Zhang, Joseph E. Gonzalez, and Ion Stoica. Judging LLM-as-a-Judge with
+MT-Bench and Chatbot Arena. In <em>Advances in Neural Information
+Processing Systems</em>, volume 36, 2023.</p>
+</div>
+</body>
+</html>
